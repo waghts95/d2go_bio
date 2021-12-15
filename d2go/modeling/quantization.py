@@ -20,7 +20,7 @@ from mobile_cv.common.misc.iter_utils import recursive_iterate
 
 TORCH_VERSION: Tuple[int, ...] = tuple(int(x) for x in torch.__version__.split(".")[:2])
 if TORCH_VERSION > (1, 10):
-    from torch.ao.quantization.quantize_fx import convert_fx, prepare_fx, prepare_qat_fx
+    from torch.quantization.quantize_fx import convert_fx, prepare_fx, prepare_qat_fx
 else:
     from torch.quantization.quantize_fx import convert_fx, prepare_fx, prepare_qat_fx
 
@@ -162,7 +162,7 @@ def _cast_detection_model(model, device):
 
 def add_d2_quant_mapping(mappings):
     """HACK: Add d2 specific module mapping for eager model quantization"""
-    import torch.ao.quantization.quantization_mappings as qm
+    import torch.quantization.quantization_mappings as qm
 
     for k, v in mappings.items():
         if k not in qm.get_default_static_quant_module_mappings():
@@ -232,7 +232,7 @@ def default_prepare_for_quant(cfg, model):
         - QAT/PTQ can be determined by model.training.
         - Currently the input model can be changed inplace since we won't re-use the
             input model.
-        - Currently this API doesn't include the final torch.ao.quantization.prepare(_qat)
+        - Currently this API doesn't include the final torch.quantization.prepare(_qat)
             call since existing usecases don't have further steps after it.
 
     Args:
@@ -255,7 +255,7 @@ def default_prepare_for_quant(cfg, model):
 
         torch.backends.quantized.engine = cfg.QUANTIZATION.BACKEND
         model.qconfig = qconfig
-        # TODO(future diff): move the torch.ao.quantization.prepare(...) call
+        # TODO(future diff): move the torch.quantization.prepare(...) call
         # here, to be consistent with the FX branch
     else:  # FX graph mode quantization
         qconfig_dict = {"": qconfig}
@@ -289,7 +289,7 @@ def post_training_quantize(cfg, model, data_loader):
         model = default_prepare_for_quant(cfg, model)
 
     if cfg.QUANTIZATION.EAGER_MODE:
-        torch.ao.quantization.prepare(model, inplace=True)
+        torch.quantization.prepare(model, inplace=True)
     logger.info("Prepared the PTQ model for calibration:\n{}".format(model))
 
     # Option for forcing running calibration on GPU, works only when the model supports
@@ -337,7 +337,7 @@ def _prepare_model_for_qat(cfg, model):
             model = default_prepare_for_quant(cfg, model)
 
         # TODO(future diff): move this into prepare_for_quant to match FX branch
-        torch.ao.quantization.prepare_qat(model, inplace=True)
+        torch.quantization.prepare_qat(model, inplace=True)
     else:  # FX graph mode quantization
         if hasattr(model, "prepare_for_quant"):
             model = model.prepare_for_quant(cfg)
@@ -378,11 +378,11 @@ def setup_qat_model(
 
     if not enable_fake_quant:
         logger.info("Disabling fake quant ...")
-        model.apply(torch.ao.quantization.disable_fake_quant)
+        model.apply(torch.quantization.disable_fake_quant)
         model.apply(qat_utils.disable_lqat_fake_quant)
     if not enable_observer:
         logger.info("Disabling static observer ...")
-        model.apply(torch.ao.quantization.disable_observer)
+        model.apply(torch.quantization.disable_observer)
         model.apply(qat_utils.disable_lqat_static_observer)
     if not enable_learnable_observer and qat_method == "learnable":
         logger.info("Disabling learnable observer ...")
@@ -477,7 +477,7 @@ class QATHook(HookBase):
             logger.info(
                 "[QAT] enable fake quant to start QAT, iter = {}".format(cur_iter)
             )
-            model.apply(torch.ao.quantization.enable_fake_quant)
+            model.apply(torch.quantization.enable_fake_quant)
             model.apply(qat_utils.enable_lqat_fake_quant)
             self._applied["enable_fake_quant"] = True
 
@@ -491,7 +491,7 @@ class QATHook(HookBase):
             and cur_iter < cfg.QUANTIZATION.QAT.DISABLE_OBSERVER_ITER
         ):
             logger.info("[QAT] enable static observer, iter = {}".format(cur_iter))
-            model.apply(torch.ao.quantization.enable_observer)
+            model.apply(torch.quantization.enable_observer)
             model.apply(qat_utils.enable_lqat_static_observer)
             self._applied["enable_observer"] = True
 
@@ -510,7 +510,7 @@ class QATHook(HookBase):
             logger.info(
                 "[QAT] disabling observer for sub seq iters, iter = {}".format(cur_iter)
             )
-            model.apply(torch.ao.quantization.disable_observer)
+            model.apply(torch.quantization.disable_observer)
             model.apply(qat_utils.disable_lqat_static_observer)
             model.apply(qat_utils.disable_lqat_learnable_observer)
             self._applied["disable_observer"] = True
