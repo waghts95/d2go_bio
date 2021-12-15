@@ -247,7 +247,7 @@ def default_prepare_for_quant(cfg, model):
             cfg.QUANTIZATION.BACKEND, cfg.QUANTIZATION.QAT.FAKE_QUANT_METHOD
         )
         if model.training
-        else torch.ao.quantization.get_default_qconfig(cfg.QUANTIZATION.BACKEND)
+        else torch.quantization.get_default_qconfig(cfg.QUANTIZATION.BACKEND)
     )
 
     if cfg.QUANTIZATION.EAGER_MODE:

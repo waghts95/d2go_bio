@@ -4,7 +4,7 @@ from functools import partial
 
 import torch
 import torch.distributed as dist
-from torch.ao.quantization._learnable_fake_quantize import _LearnableFakeQuantize
+from torch.quantization._learnable_fake_quantize import _LearnableFakeQuantize
 
 
 logger = logging.getLogger(__name__)
